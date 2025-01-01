@@ -1,4 +1,6 @@
-require 'docile'
+# frozen_string_literal: true
+
+require "docile"
 
 module PDFWrite
   module Core
@@ -6,7 +8,7 @@ module PDFWrite
       def self.default
         CrossReferenceTableEntry.new(
           offset: 0,
-          generation: 65535,
+          generation: 65_535,
           usage: :free,
         )
       end
@@ -27,14 +29,12 @@ module PDFWrite
       end
 
       def ensure_object(name, generation: 0)
-        if number = @object_names[name]
-          ObjectRef.new(number:, generation:)
-        else
+        unless (number = @object_names[name])
           number = @objects.size
           @objects << CrossReferenceTableEntry.default
           @object_names[name] = number
-          ObjectRef.new(number:, generation:)
         end
+        ObjectRef.new(number:, generation:)
       end
 
       def update_object_entry(object_ref)
