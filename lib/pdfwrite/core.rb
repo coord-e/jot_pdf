@@ -60,118 +60,87 @@ module PDFWrite
       def objects
         @writer.objects
       end
-    end
-
-    class DictionaryWriteContext < WriteContext
-      def write_entry(name, &block)
-        @writer << "/#{name} "
-        Docile.dsl_eval(ObjectWriteContext.new(@writer), &block)
-        @writer << "\n"
-      end
-    end
-
-    class ArrayWriteContext < WriteContext
-      def write_element(&block)
-        Docile.dsl_eval(ObjectWriteContext.new(@writer), &block)
-        @writer << " "
-      end
-    end
-
-    class StreamWriteContext < WriteContext
-      def write_begin_text
-        @writer << "BT\n"
-      end
-
-      def write_text_font(font_name, size)
-        @writer << "/#{font_name} #{size} Tf\n"
-      end
-
-      def write_text_destination(x, y)
-        @writer << "#{x} #{y} Td\n"
-      end
-
-      def write_text(text)
-        @writer << "(#{text}) Tj\n"
-      end
-
-      def write_end_text
-        @writer << "ET\n"
-      end
-
-      def write_do(name)
-        @writer << "/#{name} Do\n"
-      end
-
-      def write_bytes(data)
-        @writer << data << "\n"
-      end
-
-      def write_cm(a, b, c, d, e, f)
-        @writer << "#{a} #{b} #{c} #{d} #{e} #{f} cm\n"
-      end
 
       def dsl(&block)
         Docile.dsl_eval(self, &block)
       end
     end
 
-    class StreamObjectWriteContext < DictionaryWriteContext
-      def stream(&block)
-        @writer << ">>\nstream\n"
-        stream_start = @writer.offset
-        Docile.dsl_eval(StreamWriteContext.new(@writer), &block)
-        stream_size = @writer.offset - stream_start
-        @writer << "endstream"
-        stream_size
+    class DictionaryWriteContext < WriteContext
+      def entry(name, &block)
+        @writer << "/#{name}"
+        ObjectWriteContext.new(@writer).dsl(&block)
+        @writer << "\n"
+      end
+    end
+
+    class ContentStreamWriteContext < WriteContext
+      def op(operator, &block)
+        ObjectWriteContext.new(@writer).dsl(&block) if block
+        @writer << operator << "\n"
       end
     end
 
     class ObjectWriteContext < WriteContext
-      def write_name(name)
-        @writer << "/#{name}"
+      def name(name)
+        @writer << " /#{name}"
       end
 
-      def write_integer(value)
-        @writer << value.to_s
+      def int(value)
+        @writer << " " << value.to_s
       end
 
-      def write_object_ref(name)
+      def str(value)
+        @writer << " (" << value.to_s << ")"
+      end
+
+      def ref(name)
         object_ref = @writer.ensure_object(name)
-        @writer << "#{object_ref.number} #{object_ref.generation} R"
+        @writer << " #{object_ref.number} #{object_ref.generation} R"
       end
 
-      def write_array(&block)
-        @writer << "["
-        Docile.dsl_eval(ArrayWriteContext.new(@writer), &block)
+      def array(&block)
+        @writer << " ["
+        ObjectWriteContext.new(@writer).dsl(&block)
         @writer << "]"
       end
 
-      def write_dictionary(&block)
-        @writer << "<<\n"
-        Docile.dsl_eval(DictionaryWriteContext.new(@writer), &block)
+      def dict(&block)
+        @writer << " <<\n"
+        DictionaryWriteContext.new(@writer).dsl(&block)
         @writer << ">>"
       end
 
-      def write_stream(&block)
-        @writer << "<<\n"
-        Docile.dsl_eval(StreamObjectWriteContext.new(@writer), &block)
+      def stream
+        @writer << "\nstream\n"
+        stream_start = @writer.offset
+        yield @writer
+        stream_size = @writer.offset - stream_start
+        @writer << "endstream"
+        stream_size
+      end
+
+      def content_stream(&block)
+        stream do |w|
+          ContentStreamWriteContext.new(w).dsl(&block)
+        end
       end
     end
 
     class PDFWriteContext < WriteContext
-      def write_header(version = "1.3")
+      def header(version = "1.3")
         @writer << "%PDF-#{version}\n"
       end
 
-      def write_object(name, generation: 0, &block)
+      def obj(name, generation: 0, &block)
         object_ref = @writer.ensure_object(name, generation:)
         @writer.update_object_entry(object_ref)
-        @writer << "#{object_ref.number} #{object_ref.generation} obj\n"
-        Docile.dsl_eval(ObjectWriteContext.new(@writer), &block)
+        @writer << "#{object_ref.number} #{object_ref.generation} obj"
+        ObjectWriteContext.new(@writer).dsl(&block)
         @writer << "\nendobj\n"
       end
 
-      def write_cross_reference_table
+      def xref
         @xref_offset = @writer.offset
         @writer << "xref\n"
         @writer << "0 #{objects.size}\n"
@@ -181,10 +150,14 @@ module PDFWrite
         end
       end
 
-      def write_trailer(&block)
+      def trailer(&block)
         @writer << "trailer\n<<\n"
-        Docile.dsl_eval(DictionaryWriteContext.new(@writer), &block)
-        @writer << ">>\nstartxref\n"
+        DictionaryWriteContext.new(@writer).dsl(&block)
+        @writer << ">>\n"
+      end
+
+      def startxref
+        @writer << "startxref\n"
         @writer << @xref_offset.to_s
         @writer << "\n"
       end
