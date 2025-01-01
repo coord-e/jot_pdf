@@ -117,13 +117,13 @@ module PDFWrite
         end
       end
 
-      def text(text, x: 0, y: 0, size: 15, font: nil)
+      def text(text, x: 0, y: 0, size: 15, line_height: size, font: nil)
         font = @font_manager.require(font)
         @ctx.dsl do
           text.each_line(chomp: true).with_index do |line, idx|
             op("BT")
             op("Tf") { name font.name; int size }
-            op("Td") { int x; int(y - size * idx) }
+            op("Td") { int x; int(y - line_height * idx) }
             op("Tj") { hexstr font.use(line) }
             op("ET")
           end
