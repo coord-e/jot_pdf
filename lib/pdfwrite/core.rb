@@ -94,6 +94,10 @@ module PDFWrite
         @writer << " (" << value.to_s << ")"
       end
 
+      def hexstr(value)
+        @writer << " <" << value.to_s << ">"
+      end
+
       def ref(object_ref)
         @writer << " #{object_ref.number} #{object_ref.generation} R"
       end

@@ -1,14 +1,90 @@
 # frozen_string_literal: true
 
+require "ttfunk"
+require "ttfunk/subset"
+
 module PDFWrite
   module Document
-    class PageContext
-      attr_reader :used_fonts
+    class StandardFont
+      attr_reader :name
 
-      def initialize(ctx, default_font:)
-        @ctx = ctx
+      def initialize(name)
+        @name = name
+      end
+
+      def standard?
+        true
+      end
+
+      def unicode_to_code(codepoint)
+        raise if codepoint > 255
+
+        codepoint
+      end
+
+      def use(text)
+        text.each_codepoint.map { |c| format("%02x", unicode_to_code(c)) }.join
+      end
+    end
+
+    class NonstandardFont
+      def initialize(font)
+        @subset = TTFunk::Subset.for(font, :unicode_8bit)
+      end
+
+      def standard?
+        false
+      end
+
+      def name
+        @subset.original.name.postscript_name
+      end
+
+      def unicode_to_code(codepoint)
+        @subset.from_unicode(codepoint)
+      end
+
+      def use(text)
+        text.each_codepoint.map { |c| @subset.use(c); format("%02x", unicode_to_code(c)) }.join
+      end
+
+      def encode_subset
+        @subset.encode
+      end
+    end
+
+    class FontManager
+      attr_writer :default_font
+
+      def initialize(default_font:)
+        @fonts = {}
         @default_font = default_font
-        @used_fonts = Set.new
+      end
+
+      def load_font(path)
+        font = TTFunk::File.open(path)
+        name = font.name.postscript_name
+        @fonts[name] = NonstandardFont.new(font)
+      end
+
+      def require(spec = nil)
+        spec ||= @default_font
+        if spec.is_a? Symbol
+          @fonts[spec] ||= StandardFont.new(spec)
+        else
+          @fonts.fetch(spec)
+        end
+      end
+
+      def loaded_fonts
+        @fonts
+      end
+    end
+
+    class PageContext
+      def initialize(ctx, font_manager:)
+        @ctx = ctx
+        @font_manager = font_manager
       end
 
       def color(r:, g:, b:)
@@ -42,14 +118,13 @@ module PDFWrite
       end
 
       def text(text, x: 0, y: 0, size: 15, font: nil)
-        font ||= @default_font
-        @used_fonts << font
+        font = @font_manager.require(font)
         @ctx.dsl do
-          text.each_line(chomp: true).with_index do |l, idx|
+          text.each_line(chomp: true).with_index do |line, idx|
             op("BT")
-            op("Tf") { name font; int size }
+            op("Tf") { name font.name; int size }
             op("Td") { int x; int(y - size * idx) }
-            op("Tj") { str l }
+            op("Tj") { hexstr font.use(line) }
             op("ET")
           end
         end
@@ -61,20 +136,22 @@ module PDFWrite
     end
 
     class DocumentWriter
-      attr_reader :pages, :used_fonts
+      attr_reader :pages, :font_manager
 
       def initialize(core, resources_obj:, pages_obj:)
         @core = core
         @pages = []
         @pages_obj = pages_obj
         @resources_obj = resources_obj
-        @default_font = nil
-
-        @used_fonts = Set.new
+        @font_manager = FontManager.new(default_font: :Helvetica)
       end
 
-      def default_font(name)
-        @default_font = name
+      def default_font(spec)
+        @font_manager.default_font = spec
+      end
+
+      def load_font(path)
+        @font_manager.load_font(path)
       end
 
       def page(width:, height:, &block)
@@ -85,9 +162,7 @@ module PDFWrite
           obj do
             dict { entry("Length") { ref length_obj } }
             content_stream do
-              page_ctx = PageContext.new(self, default_font: @default_font)
-              page_ctx.dsl(&block)
-              @used_fonts.merge(page_ctx.used_fonts)
+              PageContext.new(self, font_manager: @font_manager).dsl(&block)
             end => stream_size
           end => contents_obj
 
@@ -114,13 +189,60 @@ module PDFWrite
         writer = Document::DocumentWriter.new(self, resources_obj:, pages_obj:)
         writer.instance_exec(&block)
 
+        font_file_objs = {}
+        writer.font_manager.loaded_fonts.each do |n, f|
+          next if f.standard?
+
+          alloc_obj => length_obj
+          stream_size = nil
+          obj do
+            dict { entry("Length").of_ref length_obj }
+            stream do |stream|
+              stream << f.encode_subset
+            end => stream_size
+          end => font_file_obj
+          font_file_objs[n] = font_file_obj
+          obj(length_obj).of_int stream_size
+        end
+
         obj(resources_obj).of_dict do
           entry("Font").of_dict do
-            writer.used_fonts.each do |n|
-              entry(n).of_dict do
+            writer.font_manager.loaded_fonts.each do |n, f|
+              entry(n.to_s).of_dict do
                 entry("Type") { name "Font" }
-                entry("Subtype") { name "Type1" }
-                entry("BaseFont") { name n }
+                if f.standard?
+                  entry("Subtype") { name "Type1" }
+                  entry("BaseFont") { name n.to_s }
+                else
+                  subset = TTFunk::File.new(f.encode_subset)
+                  entry("Subtype").of_name "TrueType"
+                  entry("FirstChar").of_int subset.os2.first_char_index
+                  entry("LastChar").of_int subset.os2.last_char_index
+                  entry("BaseFont").of_name subset.name.postscript_name
+                  entry("Widths").of_array do
+                    (subset.os2.first_char_index..subset.os2.last_char_index).each do |code|
+                      gid = subset.cmap.tables.first[code]
+                      width_in_units = subset.horizontal_metrics.for(gid).advance_width
+                      int (Float(width_in_units) * 1000 / subset.header.units_per_em).to_i
+                    end
+                  end
+                  entry("FontDescriptor").of_dict do
+                    entry("Ascent").of_int subset.ascent
+                    entry("Descent").of_int subset.descent
+                    entry("CapHeight").of_int subset.os2.cap_height
+                    entry("StemV").of_int 0
+                    entry("ItalicAngle").of_int 0
+                    entry("Flags").of_int 0b100
+                    entry("FontBBox").of_array do
+                      subset.bbox.each do |i|
+                        int i
+                      end
+                    end
+                    entry("FontName").of_name subset.name.postscript_name
+                    entry("XHeight").of_int subset.os2.x_height
+                    entry("FontFile2").of_ref font_file_objs[n]
+                  end
+                end
               end
             end
           end

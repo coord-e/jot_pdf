@@ -31,6 +31,9 @@ Metrics/MethodLength:
 Metrics/BlockLength:
   Enabled: false
 
+Metrics/PerceivedComplexity:
+  Enabled: false
+
 Naming/BlockForwarding:
   EnforcedStyle: explicit
 
