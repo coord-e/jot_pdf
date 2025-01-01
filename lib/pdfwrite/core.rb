@@ -23,18 +23,14 @@ module PDFWrite
         @objects = [
           CrossReferenceTableEntry.default,
         ]
-        @object_names = {}
         @io = io
         @offset = 0
       end
 
-      def ensure_object(name, generation: 0)
-        unless (number = @object_names[name])
-          number = @objects.size
-          @objects << CrossReferenceTableEntry.default
-          @object_names[name] = number
-        end
-        ObjectRef.new(number:, generation:)
+      def new_object
+        number = @objects.size
+        @objects << CrossReferenceTableEntry.default
+        ObjectRef.new(number:, generation: 0)
       end
 
       def update_object_entry(object_ref)
@@ -94,8 +90,7 @@ module PDFWrite
         @writer << " (" << value.to_s << ")"
       end
 
-      def ref(name)
-        object_ref = @writer.ensure_object(name)
+      def ref(object_ref)
         @writer << " #{object_ref.number} #{object_ref.generation} R"
       end
 
@@ -132,12 +127,15 @@ module PDFWrite
         @writer << "%PDF-#{version}\n"
       end
 
-      def obj(name, generation: 0, &block)
-        object_ref = @writer.ensure_object(name, generation:)
-        @writer.update_object_entry(object_ref)
-        @writer << "#{object_ref.number} #{object_ref.generation} obj"
-        ObjectWriteContext.new(@writer).dsl(&block)
-        @writer << "\nendobj\n"
+      def obj(object_ref = nil, &block)
+        object_ref ||= @writer.new_object
+        if block
+          @writer.update_object_entry(object_ref)
+          @writer << "#{object_ref.number} #{object_ref.generation} obj"
+          ObjectWriteContext.new(@writer).dsl(&block)
+          @writer << "\nendobj\n"
+        end
+        object_ref
       end
 
       def xref
