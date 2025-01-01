@@ -43,6 +43,9 @@ Style/Semicolon:
 Naming/MethodParameterName:
   Enabled: false
 
+Lint/AmbiguousOperatorPrecedence:
+  Enabled: false
+
 # TODO: enable this
 Style/Documentation:
   Enabled: false
