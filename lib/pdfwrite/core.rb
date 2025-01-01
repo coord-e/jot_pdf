@@ -65,8 +65,12 @@ module PDFWrite
     class DictionaryWriteContext < WriteContext
       def entry(name, &block)
         @writer << "/#{name}"
-        ObjectWriteContext.new(@writer).dsl(&block)
-        @writer << "\n"
+        if block
+          ObjectWriteContext.new(@writer).dsl(&block)
+          @writer << "\n"
+        else
+          ObjectInterm.new(writer: @writer, finalizer: proc { @writer << "\n" })
+        end
       end
     end
 
@@ -122,20 +126,67 @@ module PDFWrite
       end
     end
 
+    class ObjectInterm
+      def initialize(writer:, finalizer: nil)
+        @writer = writer
+        @finalizer = finalizer
+      end
+
+      def of_name(name)
+        @writer << " /#{name}"
+        @finalizer&.call
+      end
+
+      def of_int(i)
+        @writer << " #{i}"
+        @finalizer&.call
+      end
+
+      def of_str(value)
+        @writer << " (" << value.to_s << ")"
+        @finalizer&.call
+      end
+
+      def of_ref(object_ref)
+        @writer << " #{object_ref.number} #{object_ref.generation} R"
+        @finalizer&.call
+      end
+
+      def of_dict(&block)
+        @writer << " <<\n"
+        DictionaryWriteContext.new(@writer).dsl(&block)
+        @writer << ">>"
+        @finalizer&.call
+      end
+
+      def of_array(&block)
+        @writer << " ["
+        ObjectWriteContext.new(@writer).dsl(&block)
+        @writer << " ]"
+        @finalizer&.call
+      end
+    end
+
     class PDFWriteContext < WriteContext
       def header(version = "1.3")
         @writer << "%PDF-#{version}\n"
       end
 
+      def alloc_obj
+        @writer.new_object
+      end
+
       def obj(object_ref = nil, &block)
         object_ref ||= @writer.new_object
+        @writer.update_object_entry(object_ref)
+        @writer << "#{object_ref.number} #{object_ref.generation} obj"
         if block
-          @writer.update_object_entry(object_ref)
-          @writer << "#{object_ref.number} #{object_ref.generation} obj"
           ObjectWriteContext.new(@writer).dsl(&block)
           @writer << "\nendobj\n"
+          object_ref
+        else
+          ObjectInterm.new(writer: @writer, finalizer: proc { @writer << "\nendobj\n"; object_ref })
         end
-        object_ref
       end
 
       def xref
