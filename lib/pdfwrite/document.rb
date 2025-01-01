@@ -130,19 +130,85 @@ module PDFWrite
         end
       end
 
+      def image(n, x:, y:, width:, height:)
+        @ctx.dsl do
+          op("cm") { int width; int 0; int 0; int height; int x; int y }
+          op("Do") { name n }
+        end
+      end
+
+      def dsl(&block)
+        Docile.dsl_eval(self, &block)
+      end
+    end
+
+    class ImageContext
+      attr_reader :image_obj
+
+      def initialize(core, width:, height:)
+        @core = core
+        @width = width
+        @height = height
+        @mask_obj = core.alloc_obj
+        @image_obj = core.alloc_obj
+      end
+
+      def alpha(&block)
+        @core.dsl do
+          alloc_obj => length_obj
+          stream_size = nil
+          obj(@mask_obj) do
+            dict do
+              entry("Type").of_name "XObject"
+              entry("Subtype").of_name "Image"
+              entry("Width").of_int @width
+              entry("Height").of_int @height
+              entry("ColorSpace").of_name "DeviceGray"
+              entry("Decode").of_array { int 0; int 1 }
+              entry("BitsPerComponent").of_int 8
+              entry("Length").of_ref length_obj
+            end
+            stream(&block) => stream_size
+          end
+          obj(length_obj) { int stream_size }
+        end
+      end
+
+      def rgb(&block)
+        @core.dsl do
+          alloc_obj => length_obj
+          stream_size = nil
+          obj(@image_obj) do
+            dict do
+              entry("Type").of_name "XObject"
+              entry("Subtype").of_name "Image"
+              entry("Width").of_int @width
+              entry("Height").of_int @height
+              entry("ColorSpace").of_name "DeviceRGB"
+              entry("BitsPerComponent").of_int 8
+              entry("SMask").of_ref @mask_obj
+              entry("Length").of_ref length_obj
+            end
+            stream(&block) => stream_size
+          end
+          obj(length_obj) { int stream_size }
+        end
+      end
+
       def dsl(&block)
         Docile.dsl_eval(self, &block)
       end
     end
 
     class DocumentWriter
-      attr_reader :pages, :font_manager
+      attr_reader :pages, :images, :font_manager
 
       def initialize(core, resources_obj:, pages_obj:)
         @core = core
         @pages = []
         @pages_obj = pages_obj
         @resources_obj = resources_obj
+        @images = {}
         @font_manager = FontManager.new(default_font: :Helvetica)
       end
 
@@ -152,6 +218,12 @@ module PDFWrite
 
       def load_font(path)
         @font_manager.load_font(path)
+      end
+
+      def image(n, width:, height:, &block)
+        ic = ImageContext.new(@core, width:, height:)
+        ic.dsl(&block)
+        @images[n] = ic.image_obj
       end
 
       def page(width:, height:, &block)
@@ -206,6 +278,12 @@ module PDFWrite
         end
 
         obj(resources_obj).of_dict do
+          entry("XObject").of_dict do
+            writer.images.each do |n, r|
+              entry(n).of_ref r
+            end
+          end
+          entry("ProcSet").of_array { name "PDF"; name "Text"; name "ImageB"; name "ImageC"; name "ImageI" }
           entry("Font").of_dict do
             writer.font_manager.loaded_fonts.each do |n, f|
               entry(n.to_s).of_dict do

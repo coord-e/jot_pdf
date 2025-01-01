@@ -172,7 +172,7 @@ module PDFWrite
     end
 
     class PDFWriteContext < WriteContext
-      def header(version = "1.3")
+      def header(version = "1.4")
         @writer << "%PDF-#{version}\n"
       end
 
