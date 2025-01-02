@@ -186,9 +186,9 @@ module PDFWrite
         end
       end
 
-      def linebreak
+      def linebreak(factor: 1)
         @ctx.dsl do
-          op("Td") { int 0; int(-line_height) }
+          op("Td") { int 0; int(-line_height * factor) }
         end
       end
 
