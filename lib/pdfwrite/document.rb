@@ -101,13 +101,19 @@ module PDFWrite
         end
       end
 
+      def stroke_width(width)
+        @ctx.dsl do
+          op("w") { int width }
+        end
+      end
+
       def rect(x:, y:, width:, height:)
         @ctx.dsl do
           op("re") { int x; int y; int width; int height }
         end
       end
 
-      def strike
+      def stroke
         @ctx.dsl do
           op("s")
         end
