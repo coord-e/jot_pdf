@@ -316,6 +316,10 @@ module PDFWrite
           @pages << page_obj
         end
       end
+
+      def dsl(&block)
+        Docile.dsl_eval(self, &block)
+      end
     end
 
     def self.write(io, &block)
@@ -325,7 +329,7 @@ module PDFWrite
         alloc_obj => resources_obj
         alloc_obj => pages_obj
         writer = Document::DocumentWriter.new(self, resources_obj:, pages_obj:)
-        writer.instance_exec(&block)
+        writer.dsl(&block)
 
         font_file_objs = {}
         writer.font_manager.loaded_fonts.each do |n, f|
