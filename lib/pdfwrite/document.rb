@@ -117,16 +117,13 @@ module PDFWrite
         end
       end
 
-      def text(text, x: 0, y: 0, size: 15, line_height: size, font: nil)
-        font = @font_manager.require(font)
+      def text(text = nil, **kwargs, &block)
         @ctx.dsl do
-          text.each_line(chomp: true).with_index do |line, idx|
-            op("BT")
-            op("Tf") { name font.name; int size }
-            op("Td") { int x; int(y - line_height * idx) }
-            op("Tj") { hexstr font.use(line) }
-            op("ET")
-          end
+          op("BT")
+          tc = TextContext.new(@ctx, font_manager: @font_manager, **kwargs)
+          tc.show text if text
+          tc.dsl(&block) if block
+          op("ET")
         end
       end
 
@@ -139,6 +136,53 @@ module PDFWrite
 
       def dsl(&block)
         Docile.dsl_eval(self, &block)
+      end
+    end
+
+    class TextContext < PageContext
+      undef_method :text
+
+      def initialize(ctx, font_manager:, x: 0, y: 0, font: nil, size: nil, line_height: nil)
+        super(ctx, font_manager:)
+        move(x:, y:)
+        font(font, **{ size: }.compact)
+        @line_height = line_height
+      end
+
+      def font(spec, size: nil)
+        @font = @font_manager.require(spec)
+        size ||= @size
+        @size ||= size
+        @ctx.dsl do
+          op("Tf") { name @font.name; int(size || 15) }
+        end
+      end
+
+      def move(x:, y:)
+        @ctx.dsl do
+          op("Td") { int x; int y }
+        end
+      end
+
+      def linebreak
+        @ctx.dsl do
+          op("Td") { int 0; int(-line_height) }
+        end
+      end
+
+      def show(text)
+        @ctx.dsl do
+          text.each_line(chomp: true).with_index do |line, idx|
+            op("Td") { int 0; int(-line_height) } unless idx.zero?
+            op("Tj") { hexstr @font.use(line) }
+          end
+        end
+      end
+
+      private
+
+      def line_height
+        @line_height || @size
       end
     end
 
