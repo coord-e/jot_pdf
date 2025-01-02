@@ -87,13 +87,15 @@ module PDFWrite
         @font_manager = font_manager
       end
 
-      def color(r:, g:, b:)
+      def color(*args, **kwargs)
+        r, g, b = colorspec(*args, **kwargs)
         @ctx.dsl do
           op("rg") { int r; int g; int b }
         end
       end
 
-      def stroke_color(r:, g:, b:)
+      def stroke_color(*args, **kwargs)
+        r, g, b = colorspec(*args, **kwargs)
         @ctx.dsl do
           op("RG") { int r; int g; int b }
         end
@@ -136,6 +138,20 @@ module PDFWrite
 
       def dsl(&block)
         Docile.dsl_eval(self, &block)
+      end
+
+      private
+
+      def colorspec(color = nil, r: nil, g: nil, b: nil)
+        if color
+          b = color & 0xff
+          g = (color >> 8) & 0xff
+          r = (color >> 16) & 0xff
+        end
+        r /= 256.0 if r > 1
+        g /= 256.0 if g > 1
+        b /= 256.0 if b > 1
+        [r, g, b]
       end
     end
 
