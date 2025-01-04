@@ -28,6 +28,8 @@ module PDFWrite
     end
 
     class NonstandardFont
+      attr_reader :subset
+
       def initialize(font)
         @subset = TTFunk::Subset.for(font, :unicode_8bit)
       end
@@ -322,6 +324,35 @@ module PDFWrite
       end
     end
 
+    def self.generate_unicode_cmap(mapping)
+      <<~CMAP
+        /CIDInit /ProcSet findresource begin
+        12 dict begin
+        begincmap
+        /CIDSystemInfo 3 dict dup begin
+          /Registry (Adobe) def
+          /Ordering (UCS) def
+          /Supplement 0 def
+        end def
+        /CMapName /Adobe-Identity-UCS def
+        /CMapType 2 def
+
+        1 begincodespacerange
+        <00> <FF>
+        endcodespacerange
+
+        #{mapping.length} beginbfchar
+        #{mapping.map do |code, codepoint|
+            format("<%<code>02X><%<codepoint>s>", code:, codepoint: codepoint.chr(::Encoding::UTF_16BE).unpack1("H*"))
+          end.join("\n")}
+
+        endcmap
+        CMapName currentdict /CMap defineresource pop
+        end
+        end
+      CMAP
+    end
+
     def self.write(io, &block)
       Core.write(io) do
         header
@@ -347,6 +378,22 @@ module PDFWrite
           obj(length_obj).of_int stream_size
         end
 
+        tounicode_objs = {}
+        writer.font_manager.loaded_fonts.each do |n, f|
+          next if f.standard?
+
+          alloc_obj => length_obj
+          stream_size = nil
+          obj do
+            dict { entry("Length").of_ref length_obj }
+            stream do |w|
+              w << generate_unicode_cmap(f.subset.to_unicode_map)
+            end => stream_size
+          end => tounicode_obj
+          obj(length_obj).of_int stream_size
+          tounicode_objs[n] = tounicode_obj
+        end
+
         obj(resources_obj).of_dict do
           entry("XObject").of_dict do
             writer.images.each do |n, r|
@@ -366,6 +413,7 @@ module PDFWrite
                   entry("Subtype").of_name "TrueType"
                   entry("FirstChar").of_int subset.os2.first_char_index
                   entry("LastChar").of_int subset.os2.last_char_index
+                  entry("ToUnicode").of_ref tounicode_objs[n]
                   entry("BaseFont").of_name subset.name.postscript_name
                   entry("Widths").of_array do
                     (subset.os2.first_char_index..subset.os2.last_char_index).each do |code|
