@@ -363,24 +363,32 @@ module PDFWrite
         writer.dsl(&block)
 
         font_file_objs = {}
-        writer.font_manager.loaded_fonts.each do |n, f|
-          next if f.standard?
-
-          alloc_obj => length_obj
-          stream_size = nil
-          obj do
-            dict { entry("Length").of_ref length_obj }
-            stream do |stream|
-              stream << f.encode_subset
-            end => stream_size
-          end => font_file_obj
-          font_file_objs[n] = font_file_obj
-          obj(length_obj).of_int stream_size
-        end
-
+        widths_objs = {}
         tounicode_objs = {}
         writer.font_manager.loaded_fonts.each do |n, f|
           next if f.standard?
+
+          subset_data = f.encode_subset
+          obj do
+            dict do
+              entry("Length").of_int subset_data.bytesize
+              entry("Length1").of_int subset_data.bytesize # always required for TrueType
+            end
+            stream do |stream|
+              stream << subset_data
+            end
+          end => font_file_obj
+          font_file_objs[n] = font_file_obj
+
+          subset = TTFunk::File.new(subset_data)
+          obj.of_array do
+            (subset.os2.first_char_index..subset.os2.last_char_index).each do |code|
+              gid = subset.cmap.tables.first[code]
+              width_in_units = subset.horizontal_metrics.for(gid).advance_width
+              int (Float(width_in_units) * 1000 / subset.header.units_per_em).to_i
+            end
+          end => widths_obj
+          widths_objs[n] = widths_obj
 
           alloc_obj => length_obj
           stream_size = nil
@@ -415,13 +423,7 @@ module PDFWrite
                   entry("LastChar").of_int subset.os2.last_char_index
                   entry("ToUnicode").of_ref tounicode_objs[n]
                   entry("BaseFont").of_name subset.name.postscript_name
-                  entry("Widths").of_array do
-                    (subset.os2.first_char_index..subset.os2.last_char_index).each do |code|
-                      gid = subset.cmap.tables.first[code]
-                      width_in_units = subset.horizontal_metrics.for(gid).advance_width
-                      int (Float(width_in_units) * 1000 / subset.header.units_per_em).to_i
-                    end
-                  end
+                  entry("Widths").of_ref widths_objs[n]
                   entry("FontDescriptor").of_dict do
                     entry("Ascent").of_int subset.ascent
                     entry("Descent").of_int subset.descent
