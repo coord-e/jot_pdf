@@ -463,6 +463,7 @@ module PDFWrite
           entry("Root") { ref root_obj }
         end
         startxref
+        eof
       end
     end
   end

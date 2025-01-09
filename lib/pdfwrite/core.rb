@@ -217,6 +217,10 @@ module PDFWrite
         @writer << "\n"
       end
 
+      def eof
+        @writer << "%%EOF\n"
+      end
+
       def dsl(&block)
         Docile.dsl_eval(self, &block)
       end
