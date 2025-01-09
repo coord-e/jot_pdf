@@ -200,7 +200,8 @@ module PDFWrite
         @writer << "0 #{objects.size}\n"
         objects.each do |object|
           u = object.usage == :in_use ? "n" : "f"
-          @writer << "#{object.offset.to_s.rjust(10, "0")} #{object.generation.to_s.rjust(5, "0")} #{u}\n"
+          # each entry ends with SP LF
+          @writer << "#{object.offset.to_s.rjust(10, "0")} #{object.generation.to_s.rjust(5, "0")} #{u} \n"
         end
       end
 
