@@ -418,11 +418,13 @@ module PDFWrite
                   entry("BaseFont") { name n.to_s }
                 else
                   subset = TTFunk::File.new(f.encode_subset)
+                  # https://github.com/prawnpdf/prawn/blob/aaea7f6beda092ba48001414125a576dcf891362/lib/prawn/fonts/ttf.rb#L446-L447
+                  base_name = subset.name.postscript_name[0, 33].delete("\0")
                   entry("Subtype").of_name "TrueType"
                   entry("FirstChar").of_int subset.os2.first_char_index
                   entry("LastChar").of_int subset.os2.last_char_index
                   entry("ToUnicode").of_ref tounicode_objs[n]
-                  entry("BaseFont").of_name subset.name.postscript_name
+                  entry("BaseFont").of_name base_name
                   entry("Widths").of_ref widths_objs[n]
                   entry("FontDescriptor").of_dict do
                     entry("Ascent").of_int subset.ascent
@@ -436,7 +438,7 @@ module PDFWrite
                         int i
                       end
                     end
-                    entry("FontName").of_name subset.name.postscript_name
+                    entry("FontName").of_name base_name
                     entry("XHeight").of_int subset.os2.x_height
                     entry("FontFile2").of_ref font_file_objs[n]
                   end
