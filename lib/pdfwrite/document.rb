@@ -166,8 +166,12 @@ module PDFWrite
     class TextContext < PageContext
       undef_method :text
 
+      attr_reader :base_x, :base_y
+
       def initialize(ctx, font_manager:, x: 0, y: 0, font: nil, size: nil, line_height: nil)
         super(ctx, font_manager:)
+        @base_x = 0
+        @base_y = 0
         move(x:, y:)
         font(font, **{ size: }.compact)
         @line_height = line_height
@@ -183,21 +187,21 @@ module PDFWrite
       end
 
       def move(x:, y:)
+        @base_x += x
+        @base_y += y
         @ctx.dsl do
           op("Td") { int x; int y }
         end
       end
 
       def linebreak(factor: 1)
-        @ctx.dsl do
-          op("Td") { int 0; int(-line_height * factor) }
-        end
+        move x: 0, y: -line_height * factor
       end
 
       def show(text)
         @ctx.dsl do
           text.each_line(chomp: true).with_index do |line, idx|
-            op("Td") { int 0; int(-line_height) } unless idx.zero?
+            move x: 0, y: -line_height unless idx.zero?
             op("Tj") { hexstr @font.use(line) }
           end
         end
