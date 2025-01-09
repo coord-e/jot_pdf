@@ -174,6 +174,7 @@ module PDFWrite
     class PDFWriteContext < WriteContext
       def header(version = "1.4")
         @writer << "%PDF-#{version}\n"
+        @writer << "%\xff\xff\xff\xff\n"
       end
 
       def alloc_obj
