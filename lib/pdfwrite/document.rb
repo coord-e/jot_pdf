@@ -115,6 +115,17 @@ module PDFWrite
         end
       end
 
+      def path(*args)
+        @ctx.dsl do
+          x0, y0 = args.shift
+          op("m") { int x0; int y0 }
+          args.each do |x, y|
+            op("l") { int x; int y }
+          end
+          op("h")
+        end
+      end
+
       def stroke
         @ctx.dsl do
           op("s")
