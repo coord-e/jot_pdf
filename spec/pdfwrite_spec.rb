@@ -1,11 +1,7 @@
 # frozen_string_literal: true
 
-RSpec.describe Pdfwrite do
+RSpec.describe PDFWrite do
   it "has a version number" do
-    expect(Pdfwrite::VERSION).not_to be nil
-  end
-
-  it "does something useful" do
-    expect(false).to eq(true)
+    expect(PDFWrite::VERSION).not_to be nil
   end
 end

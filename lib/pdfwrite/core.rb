@@ -77,7 +77,7 @@ module PDFWrite
     class ContentStreamWriteContext < WriteContext
       def op(operator, &block)
         ObjectWriteContext.new(@writer).dsl(&block) if block
-        @writer << operator << "\n"
+        @writer << " " << operator << "\n"
       end
     end
 
