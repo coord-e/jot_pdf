@@ -360,6 +360,7 @@ module PDFWrite
         #{mapping.map do |code, codepoint|
             format("<%<code>02X><%<codepoint>s>", code:, codepoint: codepoint.chr(::Encoding::UTF_16BE).unpack1("H*"))
           end.join("\n")}
+        endbfchar
 
         endcmap
         CMapName currentdict /CMap defineresource pop
