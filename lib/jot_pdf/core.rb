@@ -2,7 +2,7 @@
 
 require "docile"
 
-module PDFWrite
+module JotPDF
   module Core
     class CrossReferenceTableEntry < Data.define(:offset, :generation, :usage)
     end
@@ -180,7 +180,7 @@ module PDFWrite
       end
     end
 
-    class PDFWriteContext < WriteContext
+    class DocumentContext < WriteContext
       def header(version = "1.4")
         @writer << "%PDF-#{version}\n"
         @writer << "%\xff\xff\xff\xff\n"
@@ -239,7 +239,7 @@ module PDFWrite
     end
 
     def self.write(io, &block)
-      Docile.dsl_eval(PDFWriteContext.new(Writer.new(io)), &block)
+      Docile.dsl_eval(DocumentContext.new(Writer.new(io)), &block)
     end
   end
 end

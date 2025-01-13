@@ -1,21 +1,21 @@
 # frozen_string_literal: true
 
-require_relative "lib/pdfwrite/version"
+require_relative "lib/jot_pdf/version"
 
 Gem::Specification.new do |spec|
-  spec.name = "pdfwrite"
-  spec.version = PDFWrite::VERSION
+  spec.name = "jot_pdf"
+  spec.version = JotPDF::VERSION
   spec.authors = ["coord_e"]
   spec.email = ["me@coord-e.com"]
 
   spec.summary = "Streaming PDF writer DSL"
-  spec.homepage = "https://github.com/coord-e/pdfwrite"
+  spec.homepage = "https://github.com/coord-e/jot_pdf"
   spec.license = "MIT"
   spec.required_ruby_version = ">=3.1.0"
 
   spec.metadata["homepage_uri"] = spec.homepage
-  spec.metadata["source_code_uri"] = "https://github.com/coord-e/pdfwrite"
-  spec.metadata["changelog_uri"] = "https://github.com/coord-e/pdfwrite/blob/main/CHANGELOG.md"
+  spec.metadata["source_code_uri"] = "https://github.com/coord-e/jot_pdf"
+  spec.metadata["changelog_uri"] = "https://github.com/coord-e/jot_pdf/blob/main/CHANGELOG.md"
   spec.metadata["rubygems_mfa_required"] = "true"
 
   # Specify which files should be added to the gem when it is released.

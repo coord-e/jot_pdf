@@ -1,28 +1,28 @@
-# PDFWrite
+# JotPDF
 
-Streaming PDF writer DSL for Ruby. Check out a live-editing demo with ruby.wasm: https://pdfwrite.coord-e.dev/
+Streaming PDF writer DSL for Ruby. Check out a live-editing demo with ruby.wasm: https://jotpdf.coord-e.dev/
 
 ## Status
 
-PDFWrite is in its early stages, and the API is fairly unstable.
+JotPDF is in its early stages, and the API is fairly unstable.
 
 ## Usage
 
 ```ruby
 # Gemfile
-gem 'pdfwrite'
+gem 'jot_pdf'
 ```
 
-PDFWrite offers two types of DSLs. One is `PDFWrite::Core`, a low-level API that directly exposes the structure of PDFs. The other is `PDFWrite::Document`, a relatively high-level API built on top of `PDFWrite::Core`, designed to be useful for actual document generation.
+JotPDF offers two types of DSLs. One is `JotPDF::Core`, a low-level API that directly exposes the structure of PDFs. The other is `JotPDF::Document`, a relatively high-level API built on top of `JotPDF::Core`, designed to be useful for actual document generation.
 
-### PDFWrite::Core
+### JotPDF::Core
 
 A PDF consists of a header, object definitions, `xref` (cross-reference table), and a trailer (including `trailer`, `startxref`, and an EOF marker).
 
 ```ruby
-require "pdfwrite"
+require "jot_pdf"
 
-PDFWrite::Core.write($stdout) do
+JotPDF::Core.write($stdout) do
   header
 
   # Emit your objects here
@@ -38,9 +38,9 @@ end
 Use `obj` to define an object; it returns a reference to the object.
 
 ```ruby
-require "pdfwrite"
+require "jot_pdf"
 
-PDFWrite::Core.write($stdout) do
+JotPDF::Core.write($stdout) do
   header
 
   obj.of_dict do
@@ -67,9 +67,9 @@ end
 Use `alloc_obj` to declare an object and emit its contents later.
 
 ```ruby
-require "pdfwrite"
+require "jot_pdf"
 
-PDFWrite::Core.write($stdout) do
+JotPDF::Core.write($stdout) do
   header
 
   alloc_obj => pages_obj
@@ -95,14 +95,14 @@ PDFWrite::Core.write($stdout) do
 end
 ```
 
-### PDFWrite::Document
+### JotPDF::Document
 
 Use `page` to emit a page.
 
 ```ruby
-require "pdfwrite"
+require "jot_pdf"
 
-PDFWrite::Document.write($stdout) do
+JotPDF::Document.write($stdout) do
   page width: 210, height: 297 do
     text "Hello, World!", x: 10, y: 200
   end
@@ -117,7 +117,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/coord-e/pdfwrite. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [code of conduct](https://github.com/coord-e/pdfwrite/blob/master/CODE_OF_CONDUCT.md).
+Bug reports and pull requests are welcome on GitHub at https://github.com/coord-e/jot_pdf. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [code of conduct](https://github.com/coord-e/jot_pdf/blob/master/CODE_OF_CONDUCT.md).
 
 ## License
 
@@ -125,4 +125,4 @@ The gem is available as open source under the terms of the [MIT License](https:/
 
 ## Code of Conduct
 
-Everyone interacting in the PDFWrite project's codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/coord-e/pdfwrite/blob/master/CODE_OF_CONDUCT.md).
+Everyone interacting in the JotPDF project's codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/coord-e/jot_pdf/blob/master/CODE_OF_CONDUCT.md).

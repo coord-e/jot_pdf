@@ -1,4 +1,4 @@
-module PDFWrite
+module JotPDF
   module Core
     class CrossReferenceTableEntry
       attr_reader offset: Integer
@@ -72,7 +72,7 @@ module PDFWrite
       def of_array: () { () [self: ObjectWriteContext] -> untyped } -> T
     end
 
-    class PDFWriteContext < WriteContext
+    class DocumentContext < WriteContext
       @xref_offset: Integer?
 
       def header: (?::String version) -> void
@@ -85,6 +85,6 @@ module PDFWrite
       def dsl: [T] () { () [self: self] -> T } -> T
     end
 
-    def self.write: (IO) { () [self: PDFWriteContext] -> void } -> void
+    def self.write: (IO) { () [self: DocumentContext] -> void } -> void
   end
 end

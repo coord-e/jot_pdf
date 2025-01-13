@@ -3,10 +3,10 @@
 require "pdf/reader"
 require "pdf/inspector"
 
-RSpec.describe PDFWrite::Document do
+RSpec.describe JotPDF::Document do
   it "writes a page with text" do
     io = StringIO.new
-    PDFWrite::Document.write(io) do
+    JotPDF::Document.write(io) do
       page width: 100, height: 200 do
         text "test"
       end
@@ -21,7 +21,7 @@ RSpec.describe PDFWrite::Document do
 
   it "writes many pages" do
     io = StringIO.new
-    PDFWrite::Document.write(io) do
+    JotPDF::Document.write(io) do
       10.times do
         page width: 100, height: 200 do
           text "test"
@@ -40,7 +40,7 @@ RSpec.describe PDFWrite::Document do
 
   it "embeds Japanese text within a page" do
     io = StringIO.new
-    PDFWrite::Document.write(io) do
+    JotPDF::Document.write(io) do
       load_font "spec/data/Mplus1-Regular.ttf"
       page width: 100, height: 200 do
         text "こんにちは", font: "MPLUS1-Regular"
@@ -56,7 +56,7 @@ RSpec.describe PDFWrite::Document do
 
   it "strokes a line" do
     io = StringIO.new
-    PDFWrite::Document.write(io) do
+    JotPDF::Document.write(io) do
       page width: 100, height: 200 do
         path [0, 0], [10, 20]
         stroke
@@ -69,7 +69,7 @@ RSpec.describe PDFWrite::Document do
 
   it "strokes a rectangle" do
     io = StringIO.new
-    PDFWrite::Document.write(io) do
+    JotPDF::Document.write(io) do
       page width: 100, height: 200 do
         rect x: 10, y: 20, width: 50, height: 60
         stroke

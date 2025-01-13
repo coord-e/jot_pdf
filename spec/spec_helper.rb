@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "pdfwrite"
+require "jot_pdf"
 
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure

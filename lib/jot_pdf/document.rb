@@ -3,7 +3,7 @@
 require "ttfunk"
 require "ttfunk/subset"
 
-module PDFWrite
+module JotPDF
   module Document
     class StandardFont
       attr_reader :name
@@ -225,7 +225,7 @@ module PDFWrite
       def show(text)
         @ctx.dsl do
           text.each_line(chomp: true).with_index do |line, idx|
-            # @type self: PDFWrite::Core::ContentStreamWriteContext & TextContext
+            # @type self: JotPDF::Core::ContentStreamWriteContext & TextContext
             move x: 0.0, y: -line_height unless idx.zero?
             op("Tj") { hexstr @font.use(line) }
           end

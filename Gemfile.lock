@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    pdfwrite (0.1.0)
+    jot_pdf (0.1.0)
       docile (~> 1.0)
       ttfunk (~> 1.0)
 
@@ -126,9 +126,9 @@ PLATFORMS
   x86_64-linux
 
 DEPENDENCIES
+  jot_pdf!
   pdf-inspector
   pdf-reader
-  pdfwrite!
   rake
   rspec
   rubocop

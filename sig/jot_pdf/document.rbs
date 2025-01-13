@@ -1,4 +1,4 @@
-module PDFWrite
+module JotPDF
   module Document
     interface _Font
       def name: () -> (::String | ::Symbol)
@@ -41,10 +41,10 @@ module PDFWrite
     end
 
     class PageContext
-      @ctx: PDFWrite::Core::ContentStreamWriteContext
+      @ctx: JotPDF::Core::ContentStreamWriteContext
       @font_manager: FontManager
 
-      def initialize: (PDFWrite::Core::ContentStreamWriteContext, font_manager: FontManager) -> void
+      def initialize: (JotPDF::Core::ContentStreamWriteContext, font_manager: FontManager) -> void
       def color: (::Integer) -> void | (r: ::Float, g: ::Float, b: ::Float) -> void
       def stroke_color: (::Integer) -> void | (r: ::Float, g: ::Float, b: ::Float) -> void
       def stroke_width: (::Float) -> void
@@ -71,7 +71,7 @@ module PDFWrite
       attr_reader base_x: ::Float
       attr_reader base_y: ::Float
 
-      def initialize: (PDFWrite::Core::ContentStreamWriteContext, font_manager: FontManager, ?x: ::Float, ?y: ::Float, ?font: ::String?, ?size: ::Float?, ?line_height: ::Float?) -> void
+      def initialize: (JotPDF::Core::ContentStreamWriteContext, font_manager: FontManager, ?x: ::Float, ?y: ::Float, ?font: ::String?, ?size: ::Float?, ?line_height: ::Float?) -> void
 
       def font: (::String | ::Symbol | nil, ?size: ::Float | nil) -> void
       def move: (x: ::Float, y: ::Float) -> void
@@ -84,35 +84,35 @@ module PDFWrite
     end
 
     class ImageContext
-      @core: PDFWrite::Core::PDFWriteContext
+      @core: JotPDF::Core::DocumentContext
       @width: ::Float
       @height: ::Float
-      @mask_obj: PDFWrite::Core::ObjectRef
-      @image_obj: PDFWrite::Core::ObjectRef
+      @mask_obj: JotPDF::Core::ObjectRef
+      @image_obj: JotPDF::Core::ObjectRef
 
-      attr_reader image_obj: PDFWrite::Core::ObjectRef
+      attr_reader image_obj: JotPDF::Core::ObjectRef
 
-      def initialize: (PDFWrite::Core::PDFWriteContext, width: ::Float, height: ::Float) -> void
+      def initialize: (JotPDF::Core::DocumentContext, width: ::Float, height: ::Float) -> void
 
-      def alpha: () { (PDFWrite::Core::Writer) -> void } -> void
-      def rgb: () { (PDFWrite::Core::Writer) -> void } -> void
+      def alpha: () { (JotPDF::Core::Writer) -> void } -> void
+      def rgb: () { (JotPDF::Core::Writer) -> void } -> void
 
       def dsl: [T] () { () [self: self] -> T } -> T
     end
 
     class DocumentWriter
-      @core: PDFWrite::Core::PDFWriteContext 
-      @pages: Array[PDFWrite::Core::ObjectRef]
-      @pages_obj: PDFWrite::Core::ObjectRef 
-      @resources_obj: PDFWrite::Core::ObjectRef
-      @images: Hash[::String, PDFWrite::Core::ObjectRef]
+      @core: JotPDF::Core::DocumentContext
+      @pages: Array[JotPDF::Core::ObjectRef]
+      @pages_obj: JotPDF::Core::ObjectRef
+      @resources_obj: JotPDF::Core::ObjectRef
+      @images: Hash[::String, JotPDF::Core::ObjectRef]
       @font_manager: FontManager  
 
-      attr_reader pages: Array[PDFWrite::Core::ObjectRef]
-      attr_reader images: Hash[::String, PDFWrite::Core::ObjectRef]
+      attr_reader pages: Array[JotPDF::Core::ObjectRef]
+      attr_reader images: Hash[::String, JotPDF::Core::ObjectRef]
       attr_reader font_manager: FontManager
 
-      def initialize: (PDFWrite::Core::PDFWriteContext, resources_obj: PDFWrite::Core::ObjectRef, pages_obj: PDFWrite::Core::ObjectRef  ) -> void
+      def initialize: (JotPDF::Core::DocumentContext, resources_obj: JotPDF::Core::ObjectRef, pages_obj: JotPDF::Core::ObjectRef  ) -> void
 
       def default_font: (::String | ::Symbol) -> void  
       def load_font: (::String) -> void
