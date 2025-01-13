@@ -1,0 +1,21 @@
+module TTFunk
+  class File
+    def self.open: (::String) -> File
+    def initialize: (::String, ?Integer) -> void
+    def name: () -> Table::Name
+  end
+
+  class Subset
+    def self.for: (File, Symbol) -> Subset
+    def from_unicode: (Integer) -> Integer
+    def use: (Integer) -> void
+    def original: () -> File
+    def encode: () -> ::String
+  end
+
+  module Table
+    class Name
+      def postscript_name: () -> ::String
+    end
+  end
+end

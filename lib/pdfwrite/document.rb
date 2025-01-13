@@ -12,10 +12,6 @@ module PDFWrite
         @name = name
       end
 
-      def standard?
-        true
-      end
-
       def unicode_to_code(codepoint)
         raise if codepoint > 255
 
@@ -32,10 +28,6 @@ module PDFWrite
 
       def initialize(font)
         @subset = TTFunk::Subset.for(font, :unicode_8bit)
-      end
-
-      def standard?
-        false
       end
 
       def name
@@ -89,15 +81,29 @@ module PDFWrite
         @font_manager = font_manager
       end
 
-      def color(*args, **kwargs)
-        r, g, b = colorspec(*args, **kwargs)
+      def color(color = nil, r: nil, g: nil, b: nil)
+        # rubocop:disable Style/RedundantCondition
+        r, g, b =
+          if color
+            colorspec(color)
+          else
+            colorspec(r:, g:, b:)
+          end
+        # rubocop:enable Style/RedundantCondition
         @ctx.dsl do
           op("rg") { int r; int g; int b }
         end
       end
 
-      def stroke_color(*args, **kwargs)
-        r, g, b = colorspec(*args, **kwargs)
+      def stroke_color(color = nil, r: nil, g: nil, b: nil)
+        # rubocop:disable Style/RedundantCondition
+        r, g, b =
+          if color
+            colorspec(color)
+          else
+            colorspec(r:, g:, b:)
+          end
+        # rubocop:enable Style/RedundantCondition
         @ctx.dsl do
           op("RG") { int r; int g; int b }
         end
@@ -162,14 +168,20 @@ module PDFWrite
       private
 
       def colorspec(color = nil, r: nil, g: nil, b: nil)
+        r ||= 0.0
+        g ||= 0.0
+        b ||= 0.0
+
         if color
-          b = color & 0xff
-          g = (color >> 8) & 0xff
-          r = (color >> 16) & 0xff
+          b = (color & 0xff).to_f
+          g = ((color >> 8) & 0xff).to_f
+          r = ((color >> 16) & 0xff).to_f
         end
+
         r /= 256.0 if r > 1
         g /= 256.0 if g > 1
         b /= 256.0 if b > 1
+
         [r, g, b]
       end
     end
@@ -179,10 +191,10 @@ module PDFWrite
 
       attr_reader :base_x, :base_y
 
-      def initialize(ctx, font_manager:, x: 0, y: 0, font: nil, size: nil, line_height: nil)
+      def initialize(ctx, font_manager:, x: 0.0, y: 0.0, font: nil, size: nil, line_height: nil)
         super(ctx, font_manager:)
-        @base_x = 0
-        @base_y = 0
+        @base_x = 0.0
+        @base_y = 0.0
         move(x:, y:)
         font(font, **{ size: }.compact)
         @line_height = line_height
@@ -205,14 +217,16 @@ module PDFWrite
         end
       end
 
-      def linebreak(factor: 1)
-        move x: 0, y: -line_height * factor
+      def linebreak(factor: 1.0)
+        # @type var factor: ::Numeric
+        move x: 0.0, y: -line_height * factor
       end
 
       def show(text)
         @ctx.dsl do
           text.each_line(chomp: true).with_index do |line, idx|
-            move x: 0, y: -line_height unless idx.zero?
+            # @type self: PDFWrite::Core::ContentStreamWriteContext & TextContext
+            move x: 0.0, y: -line_height unless idx.zero?
             op("Tj") { hexstr @font.use(line) }
           end
         end
@@ -378,11 +392,17 @@ module PDFWrite
         writer = Document::DocumentWriter.new(self, resources_obj:, pages_obj:)
         writer.dsl(&block)
 
+        # @type var font_file_objs: Hash[::String | Symbol, ObjectRef]
+        # @type var widths_objs: Hash[::String | Symbol, ObjectRef]
+        # @type var tounicode_objs: Hash[::String | Symbol, ObjectRef]
         font_file_objs = {}
         widths_objs = {}
         tounicode_objs = {}
         writer.font_manager.loaded_fonts.each do |n, f|
-          next if f.standard?
+          # TODO: How can Steep use is_a? on _Font?
+          # rubocop:disable Style/CaseEquality
+          next unless NonstandardFont === f
+          # rubocop:enable Style/CaseEquality
 
           subset_data = f.encode_subset
           obj do
@@ -429,10 +449,11 @@ module PDFWrite
             writer.font_manager.loaded_fonts.each do |n, f|
               entry(n.to_s).of_dict do
                 entry("Type") { name "Font" }
-                if f.standard?
+                case f
+                when StandardFont
                   entry("Subtype") { name "Type1" }
                   entry("BaseFont") { name n.to_s }
-                else
+                when NonstandardFont
                   subset = TTFunk::File.new(f.encode_subset)
                   # https://github.com/prawnpdf/prawn/blob/aaea7f6beda092ba48001414125a576dcf891362/lib/prawn/fonts/ttf.rb#L446-L447
                   base_name = subset.name.postscript_name[0, 33].delete("\0")

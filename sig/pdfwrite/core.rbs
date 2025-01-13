@@ -1,0 +1,90 @@
+module PDFWrite
+  module Core
+    class CrossReferenceTableEntry
+      attr_reader offset: Integer
+      attr_reader generation: Integer
+      attr_reader usage: Symbol
+
+      def initialize: (offset: Integer, generation: Integer, usage: Symbol) -> void
+      def self.default: () -> CrossReferenceTableEntry
+    end
+
+    class ObjectRef
+      attr_reader number: Integer
+      attr_reader generation: Integer
+
+      def initialize: (number: Integer, generation: Integer) -> void
+    end
+
+    class Writer
+      @objects: Array[CrossReferenceTableEntry]
+      @io: IO
+      @offset: Integer
+
+      attr_reader objects: Array[CrossReferenceTableEntry]
+      attr_reader io: IO
+      attr_reader offset: Integer
+
+      def initialize: (IO) -> void
+      def new_object: () -> ObjectRef
+      def update_object_entry: (ObjectRef) -> void
+      def <<: (_ToS) -> self
+    end
+
+    class WriteContext
+      @writer: Writer
+
+      def initialize: (Writer) -> void
+      def objects: () -> Array[CrossReferenceTableEntry]
+      def dsl: [T] () { () [self: self] -> T } -> T
+    end
+
+    class DictionaryWriteContext < WriteContext
+      def entry: (_ToS) { () [self: ObjectWriteContext] -> untyped } -> void | (_ToS) -> ObjectInterm[void]
+    end
+
+    class ContentStreamWriteContext < WriteContext
+      def op: (_ToS) ?{ () [self: ObjectWriteContext] -> untyped } -> void
+    end
+
+    class ObjectWriteContext < WriteContext
+      def name: (_ToS) -> void
+      def int: (_ToS) -> void
+      def str: (_ToS) -> void
+      def hexstr: (_ToS) -> void
+      def ref: (ObjectRef) -> void
+      def array: () { () [self: ObjectWriteContext] -> untyped } -> void
+      def dict: () { () [self: DictionaryWriteContext] -> untyped } -> void
+      def stream: () { (Writer) -> untyped } -> Integer
+      def content_stream: () { () [self: ContentStreamWriteContext] -> untyped } -> Integer
+    end
+
+    class ObjectInterm[T]
+      @writer: Writer
+      @finalizer: ^() -> T
+
+      def initialize: (writer: Writer, finalizer: ^() -> T) -> void
+      def of_name: (_ToS) -> T
+      def of_int: (_ToS) -> T
+      def of_str: (_ToS) -> T
+      def of_ref: (ObjectRef) -> T
+      def of_dict: () { () [self: DictionaryWriteContext] -> untyped } -> T
+      def of_array: () { () [self: ObjectWriteContext] -> untyped } -> T
+    end
+
+    class PDFWriteContext < WriteContext
+      @xref_offset: Integer?
+
+      def header: (?::String version) -> void
+      def alloc_obj: () -> ObjectRef
+      def obj: (?ObjectRef object_ref) { () [self: ObjectWriteContext] -> untyped } -> ObjectRef | (?ObjectRef object_ref) -> ObjectInterm[ObjectRef]
+      def xref: () -> void
+      def trailer: () { () [self: DictionaryWriteContext] -> untyped } -> void
+      def startxref: () -> void
+      def eof: () -> void
+      def dsl: [T] () { () [self: self] -> T } -> T
+    end
+
+    def self.write: (IO) { () [self: PDFWriteContext] -> void } -> void
+  end
+end

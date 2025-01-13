@@ -1,0 +1,4 @@
+module Docile
+  # TODO: How to refer original block context in the self type binding
+  def self.dsl_eval: [T, U] (T) { () [self: untyped] -> U } -> U
+end

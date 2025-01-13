@@ -4,7 +4,11 @@ require "docile"
 
 module PDFWrite
   module Core
-    CrossReferenceTableEntry = Data.define(:offset, :generation, :usage) do
+    class CrossReferenceTableEntry < Data.define(:offset, :generation, :usage)
+    end
+
+    # separating definition for steep
+    class CrossReferenceTableEntry
       def self.default
         CrossReferenceTableEntry.new(
           offset: 0,
@@ -14,7 +18,8 @@ module PDFWrite
       end
     end
 
-    ObjectRef = Data.define(:number, :generation)
+    class ObjectRef < Data.define(:number, :generation)
+    end
 
     class Writer
       attr_reader :objects, :io, :offset
@@ -42,8 +47,9 @@ module PDFWrite
       end
 
       def <<(data)
-        @io << data
-        @offset += data.bytesize
+        s = data.to_s
+        @io << s
+        @offset += s.bytesize
         self
       end
     end
@@ -69,7 +75,10 @@ module PDFWrite
           ObjectWriteContext.new(@writer).dsl(&block)
           @writer << "\n"
         else
-          ObjectInterm.new(writer: @writer, finalizer: proc { @writer << "\n" })
+          # TODO: Why does this need annotation?
+          # @type var finalizer: ^() -> ObjectRef
+          finalizer = proc { @writer << "\n" }
+          ObjectInterm.new(writer: @writer, finalizer:)
         end
       end
     end
@@ -131,43 +140,43 @@ module PDFWrite
     end
 
     class ObjectInterm
-      def initialize(writer:, finalizer: nil)
+      def initialize(writer:, finalizer:)
         @writer = writer
         @finalizer = finalizer
       end
 
       def of_name(name)
         @writer << " /#{name}"
-        @finalizer&.call
+        @finalizer.call
       end
 
       def of_int(i)
         @writer << " #{i}"
-        @finalizer&.call
+        @finalizer.call
       end
 
       def of_str(value)
         @writer << " (" << value.to_s << ")"
-        @finalizer&.call
+        @finalizer.call
       end
 
       def of_ref(object_ref)
         @writer << " #{object_ref.number} #{object_ref.generation} R"
-        @finalizer&.call
+        @finalizer.call
       end
 
       def of_dict(&block)
         @writer << " <<\n"
         DictionaryWriteContext.new(@writer).dsl(&block)
         @writer << ">>"
-        @finalizer&.call
+        @finalizer.call
       end
 
       def of_array(&block)
         @writer << " ["
         ObjectWriteContext.new(@writer).dsl(&block)
         @writer << " ]"
-        @finalizer&.call
+        @finalizer.call
       end
     end
 
@@ -190,7 +199,10 @@ module PDFWrite
           @writer << "\nendobj\n"
           object_ref
         else
-          ObjectInterm.new(writer: @writer, finalizer: proc { @writer << "\nendobj\n"; object_ref })
+          # TODO: Why does this need annotation?
+          # @type var finalizer: ^() -> ObjectRef
+          finalizer = proc { @writer << "\nendobj\n"; object_ref }
+          ObjectInterm.new(writer: @writer, finalizer:)
         end
       end
 

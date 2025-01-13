@@ -15,3 +15,5 @@ group :test do
   gem "pdf-inspector"
   gem "pdf-reader"
 end
+
+gem "steep", "~> 1.9"

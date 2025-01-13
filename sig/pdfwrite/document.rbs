@@ -1,0 +1,129 @@
+module PDFWrite
+  module Document
+    interface _Font
+      def name: () -> (::String | ::Symbol)
+      def unicode_to_code: (::Integer) -> ::Integer
+      def use: (::String) -> ::String
+    end
+
+    class StandardFont
+      @name: ::Symbol
+      attr_reader name: ::Symbol
+
+      def initialize: (::Symbol) -> void
+      
+      def unicode_to_code: (::Integer) -> ::Integer
+      def use: (::String) -> ::String
+    end
+
+    class NonstandardFont
+      @subset: TTFunk::Subset
+      attr_reader subset: TTFunk::Subset
+
+      def initialize: (TTFunk::File) -> void
+
+      def name: () -> ::String
+      def unicode_to_code: (::Integer) -> ::Integer
+      def use: (::String) -> ::String
+
+      def encode_subset: () -> ::String
+    end
+
+    class FontManager
+      @fonts: Hash[::String | ::Symbol, _Font]
+      @default_font: ::String | ::Symbol
+      attr_writer default_font: ::String | ::Symbol
+
+      def initialize: (default_font: ::String | ::Symbol) -> void
+      def load_font: (::String) -> _Font
+      def require: (?(::String | ::Symbol | nil)) -> _Font
+      def loaded_fonts: () -> Hash[::String | ::Symbol, _Font]
+    end
+
+    class PageContext
+      @ctx: PDFWrite::Core::ContentStreamWriteContext
+      @font_manager: FontManager
+
+      def initialize: (PDFWrite::Core::ContentStreamWriteContext, font_manager: FontManager) -> void
+      def color: (::Integer) -> void | (r: ::Float, g: ::Float, b: ::Float) -> void
+      def stroke_color: (::Integer) -> void | (r: ::Float, g: ::Float, b: ::Float) -> void
+      def stroke_width: (::Float) -> void
+      def rect: (x: ::Float, y: ::Float, width: ::Float, height: ::Float) -> void
+      def path: (*[::Float, ::Float]) -> void
+      def stroke: () -> void
+      def fill: () -> void
+      def text: (?::String?, ?x: ::Float, ?y: ::Float, ?font: ::String | ::Symbol, ?size: ::Float, ?line_height: ::Float) ?{ () [self: TextContext] -> void } -> void
+      def image: (::String, x: ::Float, y: ::Float, width: ::Float, height: ::Float) -> void
+
+      def dsl: [T] () { () [self: self] -> T } -> T
+
+      private
+
+      def colorspec: (::Integer) -> [::Float, ::Float, ::Float] | (r: ::Float?, g: ::Float?, b: ::Float?) -> [::Float, ::Float, ::Float]
+    end
+
+    class TextContext < PageContext
+      @base_x: ::Float
+      @base_y: ::Float
+      @line_height: ::Float?
+      @font: _Font
+      @size: ::Float
+      attr_reader base_x: ::Float
+      attr_reader base_y: ::Float
+
+      def initialize: (PDFWrite::Core::ContentStreamWriteContext, font_manager: FontManager, ?x: ::Float, ?y: ::Float, ?font: ::String?, ?size: ::Float?, ?line_height: ::Float?) -> void
+
+      def font: (::String | ::Symbol | nil, ?size: ::Float | nil) -> void
+      def move: (x: ::Float, y: ::Float) -> void
+      def linebreak: (?factor: ::Float) -> void
+      def show: (::String) -> void
+
+      private
+
+      def line_height: () -> (::Float)
+    end
+
+    class ImageContext
+      @core: PDFWrite::Core::PDFWriteContext
+      @width: ::Float
+      @height: ::Float
+      @mask_obj: PDFWrite::Core::ObjectRef
+      @image_obj: PDFWrite::Core::ObjectRef
+
+      attr_reader image_obj: PDFWrite::Core::ObjectRef
+
+      def initialize: (PDFWrite::Core::PDFWriteContext, width: ::Float, height: ::Float) -> void
+
+      def alpha: () { (PDFWrite::Core::Writer) -> void } -> void
+      def rgb: () { (PDFWrite::Core::Writer) -> void } -> void
+
+      def dsl: [T] () { () [self: self] -> T } -> T
+    end
+
+    class DocumentWriter
+      @core: PDFWrite::Core::PDFWriteContext 
+      @pages: Array[PDFWrite::Core::ObjectRef]
+      @pages_obj: PDFWrite::Core::ObjectRef 
+      @resources_obj: PDFWrite::Core::ObjectRef
+      @images: Hash[::String, PDFWrite::Core::ObjectRef]
+      @font_manager: FontManager  
+
+      attr_reader pages: Array[PDFWrite::Core::ObjectRef]
+      attr_reader images: Hash[::String, PDFWrite::Core::ObjectRef]
+      attr_reader font_manager: FontManager
+
+      def initialize: (PDFWrite::Core::PDFWriteContext, resources_obj: PDFWrite::Core::ObjectRef, pages_obj: PDFWrite::Core::ObjectRef  ) -> void
+
+      def default_font: (::String | ::Symbol) -> void  
+      def load_font: (::String) -> void
+      def image: (::String, width: ::Float, height: ::Float) { () [self: ImageContext] -> void } -> void  
+      def page: (width: ::Float, height: ::Float) { () [self: PageContext] -> void } -> void
+
+      def dsl: [T] () { () [self: DocumentWriter] -> T } -> T
+    end
+
+    def self.generate_unicode_cmap: (Hash[::Integer, ::Integer]) -> ::String
+
+    def self.write: (IO) { () [self: DocumentWriter] -> void } -> void
+  end
+end
