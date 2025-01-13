@@ -2,18 +2,11 @@
 
 source "https://rubygems.org"
 
-# Specify your gem's dependencies in pdfwrite.gemspec
 gemspec
 
-gem "rake", "~> 13.0"
-
-gem "rspec", "~> 3.0"
-
-gem "rubocop", "~> 1.21"
-
-group :test do
-  gem "pdf-inspector"
-  gem "pdf-reader"
-end
-
-gem "steep", "~> 1.9"
+gem "pdf-inspector"
+gem "pdf-reader"
+gem "rake"
+gem "rspec"
+gem "rubocop"
+gem "steep"
