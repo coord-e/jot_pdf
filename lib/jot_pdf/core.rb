@@ -238,15 +238,11 @@ module JotPDF
           dsl(&block)
         end
         @writer << ">>\n"
-      end
 
-      def startxref
         @writer << "startxref\n"
         @writer << @xref_offset.to_s
         @writer << "\n"
-      end
 
-      def eof
         @writer << "%%EOF\n"
       end
 

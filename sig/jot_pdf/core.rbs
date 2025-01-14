@@ -83,8 +83,6 @@ module JotPDF
       def obj: (?ObjectRef object_ref) { () [self: ObjectWriteContext] -> untyped } -> ObjectRef | (?ObjectRef object_ref) -> ObjectInterm[ObjectRef]
       def xref: () -> void
       def trailer: () { () [self: DictionaryWriteContext] -> untyped } -> void
-      def startxref: () -> void
-      def eof: () -> void
       def dsl: [T] () { () [self: self] -> T } -> T
     end
 

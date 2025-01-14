@@ -500,11 +500,8 @@ module JotPDF
         end => root_obj
         xref
         trailer do
-          entry("Size") { int objects.size }
           entry("Root") { ref root_obj }
         end
-        startxref
-        eof
       end
     end
   end

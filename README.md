@@ -30,8 +30,6 @@ JotPDF::Core.write($stdout) do
   xref
   trailer do
   end
-  startxref
-  eof
 end
 ```
 
@@ -56,11 +54,9 @@ JotPDF::Core.write($stdout) do
 
   xref
   trailer do
-    entry("Size").of_int objects.size # you can access all declared objects via `objects`
+     # JotPDF automatically inserts Size entry in the trailer dictionary
     entry("Root").of_ref catalog_obj
   end
-  startxref
-  eof
 end
 ```
 
@@ -87,11 +83,8 @@ JotPDF::Core.write($stdout) do
 
   xref
   trailer do
-    entry("Size").of_int objects.size
     entry("Root").of_ref catalog_obj
   end
-  startxref
-  eof
 end
 ```
 
