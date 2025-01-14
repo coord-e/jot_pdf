@@ -28,6 +28,7 @@ module JotPDF
         @objects = [
           CrossReferenceTableEntry.default,
         ]
+        @section = [0]
         @io = io
         @offset = 0
       end
@@ -39,11 +40,18 @@ module JotPDF
       end
 
       def update_object_entry(object_ref)
+        @section << object_ref.number
         @objects[object_ref.number] = CrossReferenceTableEntry.new(
           generation: object_ref.generation,
           offset: @offset,
           usage: :in_use,
         )
+      end
+
+      def finish_section
+        result = @section.dup
+        @section.clear
+        result
       end
 
       def <<(data)
@@ -207,19 +215,28 @@ module JotPDF
       end
 
       def xref
+        @prev_xref_offset = @xref_offset
         @xref_offset = @writer.offset
         @writer << "xref\n"
-        @writer << "0 #{objects.size}\n"
-        objects.each do |object|
-          u = object.usage == :in_use ? "n" : "f"
-          # each entry ends with SP LF
-          @writer << "#{object.offset.to_s.rjust(10, "0")} #{object.generation.to_s.rjust(5, "0")} #{u} \n"
+        section_objs = @writer.finish_section
+        section_objs.sort.slice_when { |prev, curr| curr != prev.next }.each do |subsection|
+          @writer << "#{subsection.first} #{subsection.size}\n"
+          subsection.each do |n|
+            object = objects[n]
+            u = object.usage == :in_use ? "n" : "f"
+            # each entry ends with SP LF
+            @writer << "#{object.offset.to_s.rjust(10, "0")} #{object.generation.to_s.rjust(5, "0")} #{u} \n"
+          end
         end
       end
 
       def trailer(&block)
         @writer << "trailer\n<<\n"
-        DictionaryWriteContext.new(@writer).dsl(&block)
+        DictionaryWriteContext.new(@writer).dsl do
+          entry("Size").of_int objects.size
+          entry("Prev").of_int @prev_xref_offset if @prev_xref_offset
+          dsl(&block)
+        end
         @writer << ">>\n"
       end
 

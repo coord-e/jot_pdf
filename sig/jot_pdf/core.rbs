@@ -20,6 +20,7 @@ module JotPDF
       @objects: Array[CrossReferenceTableEntry]
       @io: IO
       @offset: Integer
+      @section: Array[Integer]
 
       attr_reader objects: Array[CrossReferenceTableEntry]
       attr_reader io: IO
@@ -28,6 +29,7 @@ module JotPDF
       def initialize: (IO) -> void
       def new_object: () -> ObjectRef
       def update_object_entry: (ObjectRef) -> void
+      def finish_section: () -> Array[Integer]
       def <<: (_ToS) -> self
     end
 
@@ -73,6 +75,7 @@ module JotPDF
     end
 
     class DocumentContext < WriteContext
+      @prev_xref_offset: Integer?
       @xref_offset: Integer?
 
       def header: (?::String version) -> void
