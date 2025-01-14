@@ -99,6 +99,14 @@ module JotPDF
     end
 
     class ObjectWriteContext < WriteContext
+      def null
+        @writer << " null"
+      end
+
+      def bool(value)
+        @writer << " #{value}"
+      end
+
       def name(name)
         @writer << " /#{name}"
       end
@@ -153,6 +161,16 @@ module JotPDF
         @finalizer = finalizer
       end
 
+      def of_null
+        @writer << " null"
+        @finalizer.call
+      end
+
+      def of_bool(value)
+        @writer << " #{value}"
+        @finalizer.call
+      end
+
       def of_name(name)
         @writer << " /#{name}"
         @finalizer.call
@@ -165,6 +183,11 @@ module JotPDF
 
       def of_str(value)
         @writer << " (" << value.to_s << ")"
+        @finalizer.call
+      end
+
+      def of_hexstr(value)
+        @writer << " <" << value.to_s << ">"
         @finalizer.call
       end
 

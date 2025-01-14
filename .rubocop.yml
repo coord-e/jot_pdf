@@ -55,6 +55,9 @@ Naming/MethodParameterName:
 Lint/AmbiguousOperatorPrecedence:
   Enabled: false
 
+Lint/EmptyBlock:
+  Enabled: false
+
 # TODO: enable this
 Style/Documentation:
   Enabled: false

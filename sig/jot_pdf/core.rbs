@@ -50,6 +50,8 @@ module JotPDF
     end
 
     class ObjectWriteContext < WriteContext
+      def null: () -> void
+      def bool: (_ToS) -> void
       def name: (_ToS) -> void
       def num: (_ToS) -> void
       def str: (_ToS) -> void
@@ -66,9 +68,12 @@ module JotPDF
       @finalizer: ^() -> T
 
       def initialize: (writer: Writer, finalizer: ^() -> T) -> void
+      def of_null: () -> T
+      def of_bool: (_ToS) -> T
       def of_name: (_ToS) -> T
       def of_num: (_ToS) -> T
       def of_str: (_ToS) -> T
+      def of_hexstr: (_ToS) -> T
       def of_ref: (ObjectRef) -> T
       def of_dict: () { () [self: DictionaryWriteContext] -> untyped } -> T
       def of_array: () { () [self: ObjectWriteContext] -> untyped } -> T
