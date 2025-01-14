@@ -91,7 +91,7 @@ module JotPDF
           end
         # rubocop:enable Style/RedundantCondition
         @ctx.dsl do
-          op("rg") { int r; int g; int b }
+          op("rg") { num r; num g; num b }
         end
       end
 
@@ -105,28 +105,28 @@ module JotPDF
           end
         # rubocop:enable Style/RedundantCondition
         @ctx.dsl do
-          op("RG") { int r; int g; int b }
+          op("RG") { num r; num g; num b }
         end
       end
 
       def stroke_width(width)
         @ctx.dsl do
-          op("w") { int width }
+          op("w") { num width }
         end
       end
 
       def rect(x:, y:, width:, height:)
         @ctx.dsl do
-          op("re") { int x; int y; int width; int height }
+          op("re") { num x; num y; num width; num height }
         end
       end
 
       def path(*args)
         @ctx.dsl do
           x0, y0 = args.shift
-          op("m") { int x0; int y0 }
+          op("m") { num x0; num y0 }
           args.each do |x, y|
-            op("l") { int x; int y }
+            op("l") { num x; num y }
           end
           op("h")
         end
@@ -156,7 +156,7 @@ module JotPDF
 
       def image(n, x:, y:, width:, height:)
         @ctx.dsl do
-          op("cm") { int width; int 0; int 0; int height; int x; int y }
+          op("cm") { num width; num 0; num 0; num height; num x; num y }
           op("Do") { name n }
         end
       end
@@ -205,7 +205,7 @@ module JotPDF
         size ||= @size
         @size ||= size
         @ctx.dsl do
-          op("Tf") { name @font.name; int(size || 15) }
+          op("Tf") { name @font.name; num(size || 15) }
         end
       end
 
@@ -213,7 +213,7 @@ module JotPDF
         @base_x += x
         @base_y += y
         @ctx.dsl do
-          op("Td") { int x; int y }
+          op("Td") { num x; num y }
         end
       end
 
@@ -258,16 +258,16 @@ module JotPDF
             dict do
               entry("Type").of_name "XObject"
               entry("Subtype").of_name "Image"
-              entry("Width").of_int @width
-              entry("Height").of_int @height
+              entry("Width").of_num @width
+              entry("Height").of_num @height
               entry("ColorSpace").of_name "DeviceGray"
-              entry("Decode").of_array { int 0; int 1 }
-              entry("BitsPerComponent").of_int 8
+              entry("Decode").of_array { num 0; num 1 }
+              entry("BitsPerComponent").of_num 8
               entry("Length").of_ref length_obj
             end
             stream(&block) => stream_size
           end
-          obj(length_obj) { int stream_size }
+          obj(length_obj) { num stream_size }
         end
       end
 
@@ -279,16 +279,16 @@ module JotPDF
             dict do
               entry("Type").of_name "XObject"
               entry("Subtype").of_name "Image"
-              entry("Width").of_int @width
-              entry("Height").of_int @height
+              entry("Width").of_num @width
+              entry("Height").of_num @height
               entry("ColorSpace").of_name "DeviceRGB"
-              entry("BitsPerComponent").of_int 8
+              entry("BitsPerComponent").of_num 8
               entry("SMask").of_ref @mask_obj
               entry("Length").of_ref length_obj
             end
             stream(&block) => stream_size
           end
-          obj(length_obj) { int stream_size }
+          obj(length_obj) { num stream_size }
         end
       end
 
@@ -335,12 +335,12 @@ module JotPDF
             end => stream_size
           end => contents_obj
 
-          obj(length_obj) { int stream_size }
+          obj(length_obj) { num stream_size }
 
           obj.of_dict do
             entry("Type") { name "Page" }
             entry("Parent") { ref @pages_obj }
-            entry("MediaBox").of_array { int 0; int 0; int width; int height }
+            entry("MediaBox").of_array { num 0; num 0; num width; num height }
             entry("Resources") { ref @resources_obj }
             entry("Contents") { ref contents_obj }
           end => page_obj
@@ -407,8 +407,8 @@ module JotPDF
           subset_data = f.encode_subset
           obj do
             dict do
-              entry("Length").of_int subset_data.bytesize
-              entry("Length1").of_int subset_data.bytesize # always required for TrueType
+              entry("Length").of_num subset_data.bytesize
+              entry("Length1").of_num subset_data.bytesize # always required for TrueType
             end
             stream do |stream|
               stream << subset_data
@@ -421,7 +421,7 @@ module JotPDF
             (subset.os2.first_char_index..subset.os2.last_char_index).each do |code|
               gid = subset.cmap.tables.first[code]
               width_in_units = subset.horizontal_metrics.for(gid).advance_width
-              int (Float(width_in_units) * 1000 / subset.header.units_per_em).to_i
+              num (Float(width_in_units) * 1000 / subset.header.units_per_em).to_i
             end
           end => widths_obj
           widths_objs[n] = widths_obj
@@ -434,7 +434,7 @@ module JotPDF
               w << generate_unicode_cmap(f.subset.to_unicode_map)
             end => stream_size
           end => tounicode_obj
-          obj(length_obj).of_int stream_size
+          obj(length_obj).of_num stream_size
           tounicode_objs[n] = tounicode_obj
         end
 
@@ -458,25 +458,25 @@ module JotPDF
                   # https://github.com/prawnpdf/prawn/blob/aaea7f6beda092ba48001414125a576dcf891362/lib/prawn/fonts/ttf.rb#L446-L447
                   base_name = subset.name.postscript_name[0, 33].delete("\0")
                   entry("Subtype").of_name "TrueType"
-                  entry("FirstChar").of_int subset.os2.first_char_index
-                  entry("LastChar").of_int subset.os2.last_char_index
+                  entry("FirstChar").of_num subset.os2.first_char_index
+                  entry("LastChar").of_num subset.os2.last_char_index
                   entry("ToUnicode").of_ref tounicode_objs[n]
                   entry("BaseFont").of_name base_name
                   entry("Widths").of_ref widths_objs[n]
                   entry("FontDescriptor").of_dict do
-                    entry("Ascent").of_int subset.ascent
-                    entry("Descent").of_int subset.descent
-                    entry("CapHeight").of_int subset.os2.cap_height
-                    entry("StemV").of_int 0
-                    entry("ItalicAngle").of_int 0
-                    entry("Flags").of_int 0b100
+                    entry("Ascent").of_num subset.ascent
+                    entry("Descent").of_num subset.descent
+                    entry("CapHeight").of_num subset.os2.cap_height
+                    entry("StemV").of_num 0
+                    entry("ItalicAngle").of_num 0
+                    entry("Flags").of_num 0b100
                     entry("FontBBox").of_array do
                       subset.bbox.each do |i|
-                        int i
+                        num i
                       end
                     end
                     entry("FontName").of_name base_name
-                    entry("XHeight").of_int subset.os2.x_height
+                    entry("XHeight").of_num subset.os2.x_height
                     entry("FontFile2").of_ref font_file_objs[n]
                   end
                 end
@@ -492,7 +492,7 @@ module JotPDF
               ref page
             end
           end
-          entry("Count") { int writer.pages.size }
+          entry("Count") { num writer.pages.size }
         end
         obj.of_dict do
           entry("Type") { name "Catalog" }

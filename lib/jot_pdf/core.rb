@@ -103,7 +103,7 @@ module JotPDF
         @writer << " /#{name}"
       end
 
-      def int(value)
+      def num(value)
         @writer << " " << value.to_s
       end
 
@@ -158,7 +158,7 @@ module JotPDF
         @finalizer.call
       end
 
-      def of_int(i)
+      def of_num(i)
         @writer << " #{i}"
         @finalizer.call
       end
@@ -233,8 +233,8 @@ module JotPDF
       def trailer(&block)
         @writer << "trailer\n<<\n"
         DictionaryWriteContext.new(@writer).dsl do
-          entry("Size").of_int objects.size
-          entry("Prev").of_int @prev_xref_offset if @prev_xref_offset
+          entry("Size").of_num objects.size
+          entry("Prev").of_num @prev_xref_offset if @prev_xref_offset
           dsl(&block)
         end
         @writer << ">>\n"
